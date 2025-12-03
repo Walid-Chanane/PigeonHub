@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <title>Email_verification</title>
+    <style>
+        body{
+            font-family: Arial Nova, sans-serif;
+            background: linear-gradient(to right, rgb(253, 141, 160), rgb(138, 138, 255));
+            margin-left: 10%;
+        }
+        .container{
+            background-color: white;
+            border-radius: 10px;
+            padding: 5%;
+            width: 80%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Email verification</h1>
+        <div><p th:text="'Dear ' + ${username} + ',' "></p></div>
+        <p>Please use the following code to verify your email:</p>
+        <div><p th:text="'Code: ' + ${code}" style="font-weight: bold"></p></div>
+        <p>Once verified, you'll be able to log in with to new account.</p>
+    </div>
+</body>
+</html>
