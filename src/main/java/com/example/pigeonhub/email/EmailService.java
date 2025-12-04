@@ -1,18 +1,17 @@
 package com.example.pigeonhub.email;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,18 +20,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class EmailService {
     
-    private final JavaMailSender mailSender;
+    private final Resend resend;
     private final SpringTemplateEngine templateEngine;
 
     @Async
-    public void send(EmailRequest request) throws MessagingException{
-
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(
-                mimeMessage,
-                MimeMessageHelper.MULTIPART_MODE_MIXED,
-                StandardCharsets.UTF_8.name()
-        );
+    public void send(EmailRequest request) {
 
         Map<String, Object> properties = new HashMap<>();
         properties.put("username", request.username());
@@ -41,10 +33,6 @@ public class EmailService {
 
         Context context = new Context();
         context.setVariables(properties);
-
-        mimeMessageHelper.setFrom(request.from());
-        mimeMessageHelper.setTo(request.to());
-        mimeMessageHelper.setSubject(request.subject());
 
         EmailTemplateName templateName;
         try {
@@ -55,8 +43,18 @@ public class EmailService {
         }
 
         String template = templateEngine.process(templateName.getName(), context);
-        mimeMessageHelper.setText(template, true);
 
-        mailSender.send(mimeMessage);
+        CreateEmailOptions emailOptions = new CreateEmailOptions.Builder()
+                .from(request.from())
+                .to(request.to())
+                .subject(request.subject())
+                .html(template)
+                .build();
+        
+        try {
+            resend.emails().send(emailOptions);
+        } catch (ResendException e) {
+            log.error("Failed to send from {} | to {}", request.from(), request.to(), e);
+        }
     }
 }
