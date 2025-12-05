@@ -10,10 +10,6 @@ public record EmailRequest(
     
     @Email
     @NotBlank
-    String from,
-    
-    @Email
-    @NotBlank
     String to,
     
     @NotBlank

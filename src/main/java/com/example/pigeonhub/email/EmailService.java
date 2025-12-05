@@ -25,38 +25,42 @@ public class EmailService {
     private final SpringTemplateEngine templateEngine;
 
     @Async
-    public void send(EmailRequest request) throws MessagingException{
-
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(
-                mimeMessage,
-                MimeMessageHelper.MULTIPART_MODE_MIXED,
-                StandardCharsets.UTF_8.name()
-        );
-
-        Map<String, Object> properties = new HashMap<>();
-        properties.put("username", request.username());
-        properties.put("code", request.code());
-        properties.put("sender", request.sender());
-
-        Context context = new Context();
-        context.setVariables(properties);
-
-        mimeMessageHelper.setFrom(request.from());
-        mimeMessageHelper.setTo(request.to());
-        mimeMessageHelper.setSubject(request.subject());
-
-        EmailTemplateName templateName;
+    public void send(EmailRequest request) {
         try {
-            templateName = EmailTemplateName.valueOf(request.templateName());
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid template name '{}', using default template.", request.templateName());
-            templateName = EmailTemplateName.DEFAULT_TEMPLATE;
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(
+                    mimeMessage,
+                    MimeMessageHelper.MULTIPART_MODE_MIXED,
+                    StandardCharsets.UTF_8.name()
+            );
+
+            Map<String, Object> properties = new HashMap<>();
+            properties.put("username", request.username());
+            properties.put("code", request.code());
+            properties.put("sender", request.sender());
+
+            Context context = new Context();
+            context.setVariables(properties);
+
+            mimeMessageHelper.setTo(request.to());
+            mimeMessageHelper.setSubject(request.subject());
+
+            EmailTemplateName templateName;
+            try {
+                templateName = EmailTemplateName.valueOf(request.templateName());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid template name '{}', using default template.", request.templateName());
+                templateName = EmailTemplateName.DEFAULT_TEMPLATE;
+            }
+
+            String template = templateEngine.process(templateName.getName(), context);
+            mimeMessageHelper.setText(template, true);
+
+            mailSender.send(mimeMessage);
+            log.info("Pigeon arrived at: {}", request.to());
+            
+        } catch (MessagingException e) {
+            log.error("Pigeon could not reach: {}", request.to(), e);
         }
-
-        String template = templateEngine.process(templateName.getName(), context);
-        mimeMessageHelper.setText(template, true);
-
-        mailSender.send(mimeMessage);
     }
 }
